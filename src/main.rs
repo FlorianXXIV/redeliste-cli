@@ -1,8 +1,9 @@
 use error_chain::error_chain;
 use clap::{Parser};
-use reqwest::Client;
-use serde_json::json;
 use serde::Deserialize;
+use signalrs_client::{hub::Hub, SignalRClient};
+use tracing::*;
+use tracing_subscriber::{self, filter, prelude::*};
 
 error_chain! {
     foreign_links {
@@ -33,24 +34,33 @@ struct RetrieveUser{
 async fn main() -> Result<()> {
     let args = Cli::parse();
 
-    let user_create = json!({
-        "name": args.user_name,
-    });
 
-//    let request_url = format!("{}/{}",args.connect_url,"User/create");
-//
-//    let response = Client::new()
-//        .post(request_url)
-//        .json(user_create)
-//        .send().await?;
-
-    let request_url = format!("{}/{}",args.connect_url,"User/0/retrieve");
-
-    let response = Client::new().get(request_url).send().await?;
-
-    let requested_user:RetrieveUser = response.json().await?;
 
     println!("{0}, {1}, {2}", args.connect_url, args.user_name, args.redeliste_name);
-    println!("{0}, {1}", requested_user.name, requested_user.id);
     Ok(())
+}
+
+async fn get_client() -> Result<SignalRClient>{
+    let _hub = Hub::default().method("NeueMeldung", print);
+}
+
+fn set_tracing_subscriber() {
+    let targets_filter = filter::Targets::new()
+        .with_target("signalrs", Level::TRACE)
+        .with_default(Level::DEBUG);
+
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_line_number(false)
+        .with_file(false)
+        .without_time()
+        .compact();
+
+    tracing_subscriber::registry()
+        .with(fmt_layer)
+        .with(targets_filter)
+        .init();
+}
+
+fn print(message: String) {
+    info!("{message}")
 }
