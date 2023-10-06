@@ -1,2 +1,5 @@
+#Auto Generated
 /target
+*.lock
+#IDEs
 .idea/
